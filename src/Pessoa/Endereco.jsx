@@ -9,116 +9,152 @@ import FlatListComponent from "../../Componente/FlatList";
 import { BaseURL } from "../Utilitario/Utilitario";
 import { Login } from "../Servico/BD/Login";
 
-export default function Endereco() {
+export default function Endereco(props) {
+
+  const [idPessoa, setidPessoa] = useState(props.route.params?.idPessoa || 0);
   const [Endereco, setEndereco] = useState("");
   const [Numero, setNumero] = useState("");
   const [Complemento, setComplemento] = useState("");
   const [Cidade, setCidade] = useState("");
-  const [keyEmEdicao, setKeyEmEdicao] = useState(null); // Controla se estamos editando um item
+  const [keyEmEdicao, setKeyEmEdicao] = useState(null);
+  const [isLoding, setloding] = useState(false);
+  const [ListaEndereco, setListaEndereco] = useState([]);
 
-  const ListaEndereco = [
-    {
-      key: 1,
-      endereco: "Rua A",
-      numero: "123",
-      complemento: "Apto 1",
-      cidade: "Cidade A",
-    },
-    {
-      key: 2,
-      endereco: "Rua B",
-      numero: "456",
-      complemento: "Casa",
-      cidade: "Cidade B",
-    },
-  ];
+  useEffect(() => {
+    ListarEndereco();
+  }, []);
+
+  const ListarEndereco = () => {
+    setloding(true);
+    getEndereco(idPessoa).then((response) => {
+      setListaEndereco(response);
+    }).finally(() => {
+      setloding(false);
+    })
+  };
 
   const cancelar = () => {
     setEndereco("");
     setNumero("");
     setComplemento("");
     setCidade("");
-    setKeyEmEdicao(null); // Reseta o modo de edição
+    setKeyEmEdicao(null);
   };
 
-  // Preenche os campos para o usuário alterar antes de disparar o PUT
-  const carregarParaEdicao = (item) => {
-    setKeyEmEdicao(item.key);
-    setEndereco(item.endereco);
-    setNumero(item.numero);
-    setComplemento(item.complemento || "");
-    setCidade(item.cidade);
-  };
+  const salvar = async (Endereco, Cidade, Complemento, Numero, idPessoa) => {
 
-  const salvar = async () => {
     try {
       const token = await Login();
 
       if (!token) {
-        console.error("Token de autenticação não disponível");
-        return null;
+        console.error('Token de autenticação não disponível');
+        return [];
       }
 
       const resposta = await fetch(`${BaseURL}/IncluirEndereco`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token.token || token}`,
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.token}`
         },
         body: JSON.stringify({
-          Endereco,
-          Cidade,
-          Complemento,
-          Numero,
-        }),
+          Endereco: Endereco,
+          Cidade: Cidade,
+          Complemento: Complemento,
+          Numero: Numero,
+          idPessoa: idPessoa
+        })
       });
 
-      if (!resposta.ok) {
-        console.error(`Erro na requisição: ${resposta.status} ${resposta.statusText}`);
-        return null;
-      }
+      const dados = await resposta.json();
+      console.log(resposta.status);
 
-      cancelar(); // Limpa os campos após salvar
-      return await resposta.json();
-    } catch (error) {
-      console.error("Erro ao acessar o serviço de inclusão de endereço", error);
+      console.log(dados);
+      cancelar();
+      ListarEndereco();
+
+      return await dados;
+
+    }
+    catch (error) {
+      console.log('Erro ao acessar o serviço de post de Endereco', error);
       return null;
     }
   };
 
-  const editar = async () => {
+  const getEndereco = async (idPessoa) => {
     try {
       const token = await Login();
 
       if (!token) {
-        console.error("Token de autenticação não disponível");
-        return null;
+        console.error('Token de autenticação não disponível');
+        return [];
       }
 
-      const resposta = await fetch(`${BaseURL}/AtualizarEndereco`, {
-        method: "PUT",
+      const resposta = await fetch(`${BaseURL}/ListaEnderecos/${idPessoa}`, {
+        method: 'GET',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token.token || token}`,
-        },
-        body: JSON.stringify({
-          Id: keyEmEdicao,
-          Endereco,
-          Numero,
-          Complemento,
-          Cidade,
-        }),
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.token}`
+        }
       });
 
-      if (!resposta.ok) {
-        console.error(`Erro ao atualizar endereço: ${resposta.status} ${resposta.statusText}`);
-        return null;
+      console.log("Status: ", resposta.status);
+
+      const dados = await resposta.json();
+
+      console.log(idPessoa);
+
+
+      console.log(dados);
+
+      return dados;
+    }
+    catch (error) {
+      console.log('Erro ao acessar o serviço de pessoa', error);
+      return null;
+    }
+  };
+
+
+  const editar = async (Endereco, Cidade, Complemento, Numero, idEndereco) => {
+    try {
+      const token = await Login();
+
+      if (!token) {
+        console.error('Token de autenticação não disponível');
+        return [];
       }
 
-      cancelar();
+      Endereco = Endereco.trim().length > 0 ? Endereco : undefined;
+      Cidade = Cidade.trim().length > 0 ? Cidade : undefined;
+      Complemento = Complemento.trim().length > 0 ? Complemento : undefined;
+      Numero = Numero.trim().length > 0 ? Numero : undefined;
+
+      const resposta = await fetch(`${BaseURL}/AlterarEndereco/${idEndereco}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.token}`
+        },
+        body: JSON.stringify({
+          Endereco: Endereco,
+          Cidade: Cidade,
+          Complemento: Complemento,
+          Numero: Numero,
+          idEndereco: idEndereco
+        })
+      });
+
+      console.log(resposta.status);
+      ListarEndereco();
+      
+
       return await resposta.json();
-    } catch (error) {
-      console.error("Erro ao acessar o serviço de atualização de endereço", error);
+
+    }
+    catch (error) {
+      console.log('Erro ao acessar o serviço de put de Endereco', error);
       return null;
     }
   };
@@ -152,14 +188,6 @@ export default function Endereco() {
     } catch (error) {
       console.error("Erro ao acessar o serviço de deleção de endereço", error);
       return null;
-    }
-  };
-
-  const handleAcaoSalvar = () => {
-    if (keyEmEdicao) {
-      editar();
-    } else {
-      salvar();
     }
   };
 
@@ -199,7 +227,7 @@ export default function Endereco() {
         onChangeText={setCidade}
       />
 
-      <BotoesAba onPress={handleAcaoSalvar} onPress2={cancelar} />
+      <BotoesAba onPress={() => salvar(Endereco, Cidade, Complemento, Numero, idPessoa)} onPress2={cancelar} />
 
       <FlatListComponent
         data={ListaEndereco}
@@ -207,19 +235,19 @@ export default function Endereco() {
           <View style={Estilo.cardLista}>
             <View style={Estilo.linhaInfo}>
               <Text style={Estilo.label}>Endereço:</Text>
-              <Text style={Estilo.valor}>{item.endereco}</Text>
+              <Text style={Estilo.valor}>{item.Endereco}</Text>
             </View>
             <View style={Estilo.linhaInfo}>
               <Text style={Estilo.label}>Número:</Text>
-              <Text style={Estilo.valor}>{item.numero}</Text>
+              <Text style={Estilo.valor}>{item.Numero}</Text>
             </View>
             <View style={Estilo.linhaInfo}>
               <Text style={Estilo.label}>Complemento:</Text>
-              <Text style={Estilo.valor}>{item.complemento}</Text>
+              <Text style={Estilo.valor}>{item.Complemento}</Text>
             </View>
 
             <BotoesAba
-              onPress={() => carregarParaEdicao(item)}
+              onPress={() => editar(Endereco, Cidade, Complemento, Numero, item.idEndereco)}
               onPress2={() => deletar(item)}
               labelbutton1="Editar"
               labelbutton2="Deletar"
