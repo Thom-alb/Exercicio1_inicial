@@ -26,7 +26,6 @@ export default function DadosGerais(props) {
         ListarPessoa();
     }, [])
 
-
     const salvar = () => {
         if (idPessoa === 0) {
             postPessoa({

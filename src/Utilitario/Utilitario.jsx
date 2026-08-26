@@ -1,4 +1,5 @@
-export const BaseURL = 'https://antiquewhite-oryx-573259.hostingersite.com';
+//export const BaseURL = 'https://antiquewhite-oryx-573259.hostingersite.com';
+export const BaseURL = 'https://serverappgilson.onrender.com';
 export const usuarioLogin = 'ti27';
 export const senhaLogin = 'fundatec2026';
 
